@@ -13,8 +13,7 @@ Install environment:
 ```
 conda create -n TensoRF python=3.8
 conda activate TensoRF
-pip install torch torchvision
-pip install tqdm scikit-image opencv-python configargparse lpips imageio-ffmpeg kornia lpips tensorboard
+pip install -r requirements.txt
 ```
 
 
@@ -24,6 +23,14 @@ pip install tqdm scikit-image opencv-python configargparse lpips imageio-ffmpeg 
 * [Tanks&Temples](https://dl.fbaipublicfiles.com/nsvf/dataset/TanksAndTemple.zip)
 * [Forward-facing](https://drive.google.com/drive/folders/128yBriW1IG_3NJ5Rp7APSTZsJqdJdfc1)
 
+To download:
+
+```bash
+mkdir data
+cd data
+gdown 18JxhpWD-4ZmuFKLzKlAw-w5PpzZxXOcG
+unzip nerf_synthetic.zip
+```
 
 
 ## Quick Start
