@@ -1,18 +1,15 @@
 import torch
 import torch.nn
+from torch import nn
 import torch.nn.functional as F
 from .sh import eval_sh_bases
 import numpy as np
 import time
 
+from .siren import TensorfSiren
+from .splitnet import ParallelSplitNet
+from .posenc import positional_encoding
 
-def positional_encoding(positions, freqs):
-    
-        freq_bands = (2**torch.arange(freqs).float()).to(positions.device)  # (F,)
-        pts = (positions[..., None] * freq_bands).reshape(
-            positions.shape[:-1] + (freqs * positions.shape[-1], ))  # (..., DF)
-        pts = torch.cat([torch.sin(pts), torch.cos(pts)], dim=-1)
-        return pts
 
 def raw2alpha(sigma, dist):
     # sigma, dist  [N_rays, N_samples]
@@ -58,7 +55,7 @@ class AlphaGridMask(torch.nn.Module):
 
 
 class MLPRender_Fea(torch.nn.Module):
-    def __init__(self,inChanel, viewpe=6, feape=6, featureC=128):
+    def __init__(self, inChanel, viewpe=6, feape=6, featureC=128):
         super(MLPRender_Fea, self).__init__()
 
         self.in_mlpC = 2*viewpe*3 + 2*feape*inChanel + 3 + inChanel
@@ -173,10 +170,22 @@ class TensorBase(torch.nn.Module):
         self.init_render_func(shadingMode, pos_pe, view_pe, fea_pe, featureC, device)
 
     def init_render_func(self, shadingMode, pos_pe, view_pe, fea_pe, featureC, device):
+        mlp_kwargs = {
+            'inChanel': self.app_dim,
+            'viewpe': view_pe,
+            'feape': fea_pe,
+            'featureC': featureC,
+        }
+        
+        print('mlp_kwargs', mlp_kwargs)
         if shadingMode == 'MLP_PE':
             self.renderModule = MLPRender_PE(self.app_dim, view_pe, pos_pe, featureC).to(device)
         elif shadingMode == 'MLP_Fea':
-            self.renderModule = MLPRender_Fea(self.app_dim, view_pe, fea_pe, featureC).to(device)
+            self.renderModule = MLPRender_Fea(**mlp_kwargs).to(device)
+        elif shadingMode == 'TensorfSiren':
+            self.renderModule = TensorfSiren(**mlp_kwargs).to(device)
+        elif shadingMode == 'ParallelSplitNet':
+            self.renderModule = ParallelSplitNet(**mlp_kwargs).to(device)
         elif shadingMode == 'MLP':
             self.renderModule = MLPRender(self.app_dim, view_pe, featureC).to(device)
         elif shadingMode == 'SH':

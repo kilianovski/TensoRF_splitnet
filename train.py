@@ -13,7 +13,7 @@ import datetime
 
 from dataLoader import dataset_dict
 import sys
-
+from utils import seed_all, count_parameters
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -66,6 +66,8 @@ def render_test(args):
     kwargs.update({'device': device})
     tensorf = eval(args.model_name)(**kwargs)
     tensorf.load(ckpt)
+    
+    count_parameters(tensorf)
 
     logfolder = os.path.dirname(args.ckpt)
     if args.render_train:
@@ -137,6 +139,11 @@ def reconstruction(args):
                     shadingMode=args.shadingMode, alphaMask_thres=args.alpha_mask_thre, density_shift=args.density_shift, distance_scale=args.distance_scale,
                     pos_pe=args.pos_pe, view_pe=args.view_pe, fea_pe=args.fea_pe, featureC=args.featureC, step_ratio=args.step_ratio, fea2denseAct=args.fea2denseAct)
 
+    n_params = count_parameters(tensorf)
+    render_module_n_params = count_parameters(tensorf.renderModule)
+
+    summary_writer.add_scalar('n_params', n_params)
+    summary_writer.add_scalar('render_module_n_params', render_module_n_params)
 
     grad_vars = tensorf.get_optparam_groups(args.lr_init, args.lr_basis)
     if args.lr_decay_iters > 0:
@@ -302,8 +309,8 @@ def reconstruction(args):
 if __name__ == '__main__':
 
     torch.set_default_dtype(torch.float32)
-    torch.manual_seed(20211202)
-    np.random.seed(20211202)
+    seed = 0
+    seed_all(seed)
 
     args = config_parser()
     print(args)
